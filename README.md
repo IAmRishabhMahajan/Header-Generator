@@ -27,13 +27,13 @@ This Python script processes a CSV file by detecting its delimiter, determining 
 ### Command-Line Interface
 To use the script, run it from the command line with the following syntax:
 ```bash
-python codename.py <file_name.csv>
+python main.py <file_name.csv>
 ```
 - `<file_name.csv>`: Path to the CSV file to be processed.
 
 ### Example
 ```bash
-python codename.py data.csv
+python main.py data.csv
 ```
 - If `data.csv` does not have headers, the script will suggest and apply new headers.
 - If `data.csv` has headers, it will use the existing structure to process the file.
