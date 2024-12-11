@@ -7,7 +7,7 @@ import chardet
 from fake_data import apply_fake_data
 
 # Configure the Google Generative AI library
-genai.configure(api_key="AIzaSyAdMFyDKFKD8yk0qLZ5dnrJ1XDL0CoWHXQ")
+genai.configure(api_key="KEY")
 
 # Detect file encoding
 def detect_encoding(file_path):
