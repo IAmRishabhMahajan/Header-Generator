@@ -77,17 +77,15 @@ def load_data(file_path):
         df = pd.read_csv(file_path, encoding='utf-8')
         return df, ','  # Assuming default delimiter as ',' for now
 
-import google.generativeai as genai
-
 def append_personal_to_columns(suggested_columns, dataframe):
     # Get 5 rows of data from the DataFrame for context
     sample_data = dataframe.head(5).to_string(index=False)
     
     # Generate the prompt for genai
-    prompt = f"""Based on the following data sample, append '_personal' to any column names that relate to personal data (e.g., names, phone numbers, addresses, credit card numbers). 
+    prompt = f"""Based on the following data sample, append '_personal' to any column names that relate to personal data (e.g., any human name, social security numbers,  phone numbers, dates of birth, addresses, credit card numbers). 
     The number of column names must remain the same, and you should return the same number of columns as in the dataset. 
     Data sample (first 5 rows): {sample_data}
-    Suggested column names (without '_personal' suffix): {suggested_columns}
+    column names are: {suggested_columns}
     Please provide the result as a comma-separated list of column names. Ensure the output has the same number of column names as the input and append '_personal' to the relevant ones."""
     
     # Call the Google Generative AI API
@@ -96,7 +94,7 @@ def append_personal_to_columns(suggested_columns, dataframe):
     
     # Extract the updated column names
     updated_columns = response.text.strip()
-    
+    print(updated_columns)
     # Return the updated column names
     return updated_columns
 
@@ -154,18 +152,23 @@ def main(file_path):
         df, delimiter = load_data(file_path)
 
         # Retry logic for generating headers
-        retries = 5
-        for attempt in range(retries):
-            suggested_headers = suggest_headers(df)
+        if has_headers(file_path,','):
+            updated_file_path = file_path
+            with open(file_path, 'r', encoding='utf-8', errors='replace') as file:
+                success, df = apply_headers(df, file.readline().strip())
+        else:
+            retries = 5
+            for attempt in range(retries):
+                suggested_headers = suggest_headers(df)
 
-            success, df = apply_headers(df, suggested_headers)
-            if success:
-                break
-            elif attempt == retries - 1:
-                print("Failed to apply suggested headers after multiple attempts.")
-                return
+                success, df = apply_headers(df, suggested_headers)
+                if success:
+                    break
+                elif attempt == retries - 1:
+                    print("Failed to apply suggested headers after multiple attempts.")
+                    return
 
-        # Append the updated data with headers to the original file
+            # Append the updated data with headers to the original file
         updated_file_path = file_path.replace('.csv', '_with_headers.csv')
         df.to_csv(updated_file_path, index=False, mode='a', header=True)
         print(f"\nHeaders applied and appended to '{updated_file_path}'.")

@@ -1,44 +1,63 @@
 import pandas as pd
 from faker import Faker
+import re
+from datetime import datetime
 
 # Initialize the Faker object
 fake = Faker()
 
-# Generate fake data based on the value type and ensure the length remains the same
-# Generate fake data based on the value type and ensure the length remains the same
-def generate_fake_data(value):
+# Function to generate fake data based on the value type and patterns
+def generate_fake_data(value, column_name):
     # Check for empty values (None, NaN, or empty string)
     if not value or pd.isna(value):
         return value  # Return the value unchanged if it's empty or NaN
 
-    # First, check if the value is numeric (either int or float)
+    column_name_lower = column_name.lower()
+
+    # Handle phone numbers
+    if any(key in column_name_lower.lower() for key in ['phone', 'mobile']) or re.match(r"^\+?\d{7,15}$", str(value)):
+        return fake.phone_number()
+
+    # Handle addresses
+    if "address" in column_name_lower:
+        return fake.address().replace("\n", "")
+
+    # Handle dates (assuming dob is a date)
+    if any(key in column_name_lower for key in ['dob', 'date']) or (isinstance(value, str) and re.match(r"\d{4}-\d{2}-\d{2}", value)):
+        try:
+            original_date = datetime.strptime(value, "%Y-%m-%d")
+            # Generate a fake date within the same range
+            fake_date = fake.date_of_birth(minimum_age=18, maximum_age=100)
+            return fake_date.strftime("%Y-%m-%d")
+        except ValueError:
+            return value  # If it doesn't parse as a date, return the original value
+
+    # Handle numeric data
     if isinstance(value, (int, float)):
-        # For numbers, generate a fake number that has the same number of digits as the original value
+        # Generate a fake number with the same number of digits
         fake_data = fake.random_number(digits=len(str(abs(int(value)))), fix_len=True)
         return fake_data
-    
-    # If it's not a number, then check if it's a string
-    elif isinstance(value, str):
-        # If it's a string, generate a fake name or other string
-        fake_data = fake.name()  # You can replace this with any other fake data generator (like fake.address())
+
+    # Handle generic strings (like names)
+    if isinstance(value, str):
+        fake_data = fake.name()  # Default to generating a fake name
         # Adjust the length of the fake data to match the original string length
         if len(fake_data) != len(value):
-            # Truncate or pad to match the length of the original value
             return fake_data[:len(value)] if len(fake_data) >= len(value) else fake_data.ljust(len(value))
         return fake_data
 
-    # For other types of data (like dates), return the original value (you can customize this for other data types)
-    else:
-        return value 
+    # For other types of data, return the original value
+    return value 
 
 # Function to process the dataframe
 def process_dataframe(df):
     # Iterate over each column in the dataframe
     for column in df.columns:
-        # Check if the column name ends with 'a'
-        if column.endswith('_personal'):
-            # Replace values in this column with fake data, maintaining the original length
-            df[column] = df[column].apply(lambda x: generate_fake_data(x))
+        column_lower = column.lower()  # Convert column name to lowercase for case-insensitive matching
+        # Check if the column matches specific patterns
+        if column_lower.endswith('_personal'):
+            # Replace values in this column with fake data
+            df[column] = df[column].apply(lambda x: generate_fake_data(x, column))
     
     return df
 
@@ -59,13 +78,9 @@ def load_and_process_csv(file_path):
 
 # Main function to run the process
 def apply_fake_data(file_path):
-    
-
-    # Check if the file exists and process it
     try:
+        # Process the file
         output_file = load_and_process_csv(file_path)
     except Exception as e:
         print(f"Error processing file: {e}")
     return output_file
-
-
