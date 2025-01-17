@@ -55,7 +55,7 @@ def has_headers(file_path, delimiter):
     first_line_parts = first_line.split(delimiter)
     second_line_parts = second_line.split(delimiter)
 
-    if all(x.isalpha() for x in first_line_parts if x) and not all(x.isalpha() for x in second_line_parts if x):
+    if all(x.replace("_", "").isalpha() for x in first_line_parts if x) and not all(x.replace("_", "").isalpha() for x in second_line_parts if x):
         return True
     return False
 
