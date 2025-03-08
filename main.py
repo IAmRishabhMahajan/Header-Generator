@@ -1,13 +1,21 @@
 import pandas as pd
 from collections import Counter
 import os
-import google.generativeai as genai
+import openai
 import sys
 import chardet
 from fake_data import apply_fake_data
 
 # Configure the Google Generative AI library
-genai.configure(api_key="KEY")
+
+client = openai.AzureOpenAI(
+    azure_endpoint="<your-endpoint>",
+    api_key="<your-api-key>",  # Replace securely
+    api_version = "<your-api-version>"
+
+)
+# Azure deployment name
+deployment_name = "<your-deployment-name>"
 
 # Detect file encoding
 def detect_encoding(file_path):
@@ -88,12 +96,19 @@ def append_personal_to_columns(suggested_columns, dataframe):
     column names are: {suggested_columns}
     Please provide the result as a comma-separated list of column names. Ensure the output has the same number of column names as the input and append '_personal' to the relevant ones."""
     
-    # Call the Google Generative AI API
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content(prompt)
+
+    response = client.chat.completions.create(
+        model=deployment_name,
+        messages=[
+            {"role": "system", "content": "Identify personal information columns."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.1,
+        max_tokens=150
+    )
     
     # Extract the updated column names
-    updated_columns = response.text.strip()
+    updated_columns = response.choices[0].message.content.strip()
     print(updated_columns)
     # Return the updated column names
     return updated_columns
@@ -106,14 +121,22 @@ def suggest_headers(dataframe):
     sample_data = dataframe.head(10).to_string(index=False)
 
     # Generate headers using the Google Generative AI library
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    
     prompt = f"""Based on the following data sample, suggest appropriate headers for the columns. Ensure the number of headers matches the number of columns in the data that is {len(dataframe.columns)} here (no more, no less). The headers should be relevant and informative. The headers should be specific and not generic. Provide the result in the format: header1,header2,...,headerN. Do not include any additional text or explanations in the response. Data sample:{sample_data}"""
 
 
-    response = model.generate_content(prompt)
+    response = client.chat.completions.create(
+        model=deployment_name,
+        messages=[
+            {"role": "system", "content": "Generate concise, clear headers for datasets."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2,
+        max_tokens=150
+    )
     
     # Extract the headers and ensure proper formatting
-    suggested_headers = response.text.strip()
+    suggested_headers = response.choices[0].message.content.strip()
     return suggested_headers
 
 # Apply suggested headers to the DataFrame
@@ -195,3 +218,11 @@ if __name__ == "__main__":
         sys.exit(1)
 
     main(file_path)
+
+
+
+
+
+
+
+
